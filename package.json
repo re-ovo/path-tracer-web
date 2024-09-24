@@ -11,6 +11,8 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
+    "@types/nprogress": "^0.2.3",
+    "nprogress": "^0.2.0",
     "vue": "^3.4.29",
     "vue-router": "^4.3.3"
   },

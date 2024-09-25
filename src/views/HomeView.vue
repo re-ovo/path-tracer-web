@@ -1,7 +1,7 @@
 <script setup lang="ts"></script>
 
 <template>
-  <main class="container mx-auto">
+  <main class="container mx-auto p-4">
     <h1>
       Path Tracer Web
     </h1>

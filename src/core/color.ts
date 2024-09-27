@@ -1,5 +1,7 @@
 import {Vec3} from "@/core/vec";
 
+export type Color = Vec3
+
 /**
  * Draws a pixel on the canvas
  *

@@ -37,7 +37,7 @@ const draw = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
 
 const rayTrace = (ray: Ray, depth: number): Vec3 => {
   if (depth > MAX_LIGHT_BOUNCES) return new Vec3(0, 0, 0)
-  // TODO
+
   return new Vec3(0, 0, 0)
 }
 </script>

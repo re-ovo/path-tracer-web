@@ -70,15 +70,24 @@ const draw = async (ctx: CanvasRenderingContext2D, width: number, height: number
   const pixel00Loc = viewportUpperLeft.add(pixelHorizontal.mul(0.5)).add(pixelVertical.mul(0.5))
   console.log('pixel00Loc', pixel00Loc)
 
+  const samplesPerPixel = 1
+
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
       const pixelCenter = pixel00Loc
           .add(pixelHorizontal.mul(i))
           .add(pixelVertical.mul(j))
 
-      const rayDir = pixelCenter.sub(cameraOrigin).normalize()
-      const color = rayTrace(new Ray(cameraOrigin, rayDir), 0)
-      drawPixel(ctx, i, j, color)
+
+      for (let k = 0; k < samplesPerPixel; k++) {
+        const rayDir = pixelCenter
+            .add(pixelHorizontal.mul(Math.random() - 0.5))
+            .add(pixelVertical.mul(Math.random() - 0.5))
+            .sub(cameraOrigin)
+            .normalize()
+        const color = rayTrace(new Ray(cameraOrigin, rayDir), 0)
+        drawPixel(ctx, i, j, color)
+      }
     }
 
     // 让出线程
@@ -87,7 +96,28 @@ const draw = async (ctx: CanvasRenderingContext2D, width: number, height: number
 }
 
 const rayTrace = (ray: Ray, depth: number): Vec3 => {
+  const hit = hitSpehere(ray, new Vec3(0, 0, -1), 0.5)
+  if (hit) {
+    return hit
+  }
+
   const a = 0.5 * (ray.getDirection().y + 1.0)
   return new Vec3(1.0, 1.0, 1.0).mul(1.0-a).add(new Vec3(0.5, 0.7, 1.0).mul(a));
+}
+
+const hitSpehere = (ray: Ray, center: Vec3, radius: number): Vec3 | null => {
+  const oc = ray.getOrigin().sub(center)
+  const a = ray.getDirection().dot(ray.getDirection())
+  const b = oc.dot(ray.getDirection()) * 2
+  const c = oc.dot(oc) - radius * radius
+  const discriminant = b * b - 4 * a * c
+  if(discriminant > 0) {
+    // return the normal vector of the hit point
+    return ray.at(
+        (-b - Math.sqrt(discriminant)) / (2 * a)
+    ).sub(center).normalize()
+  } else {
+    return null
+  }
 }
 </script>

@@ -19,7 +19,7 @@ import {h, onMounted, useTemplateRef} from "vue";
 import {Ray} from "@/core/ray";
 import {Vec3} from "@/core/vec";
 import {drawPixel} from "@/core/color";
-import {useFps} from "@vueuse/core";
+import {useFps, useResizeObserver} from "@vueuse/core";
 
 const canvasRef = useTemplateRef<HTMLCanvasElement | null>('canvasRef')
 const fps = useFps()
@@ -27,6 +27,8 @@ const fps = useFps()
 onMounted(() => {
   render()
 })
+
+useResizeObserver(() => document.querySelector('body'), () => render())
 
 const MAX_LIGHT_BOUNCES = 3
 const cameraOrigin = new Vec3(0, 0, 0)
@@ -48,8 +50,8 @@ const draw = async (ctx: CanvasRenderingContext2D, width: number, height: number
   const aspectRatio = width / height
 
   // 计算viewport
-  const viewportHeight = 2 * Math.tan((cameraFov * Math.PI) / 180 / 2)
-  const viewportWidth = viewportHeight * aspectRatio
+  const viewportWidth = 2.0
+  const viewportHeight = viewportWidth / aspectRatio
 
   // 计算焦距: tan(1/2 fov) = 对边 / 邻边 = 1 / focal
   // focal = 1 / Math.tan(cameraFov / 2)
@@ -96,13 +98,13 @@ const draw = async (ctx: CanvasRenderingContext2D, width: number, height: number
 }
 
 const rayTrace = (ray: Ray, depth: number): Vec3 => {
-  const hit = hitSpehere(ray, new Vec3(0, 0, -1), 0.5)
+  const hit = hitSpehere(ray, new Vec3(0, 0.5, -1), 0.5)
   if (hit) {
     return hit
   }
 
   const a = 0.5 * (ray.getDirection().y + 1.0)
-  return new Vec3(1.0, 1.0, 1.0).mul(1.0-a).add(new Vec3(0.5, 0.7, 1.0).mul(a));
+  return new Vec3(1.0, 1.0, 1.0).mul(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).mul(a));
 }
 
 const hitSpehere = (ray: Ray, center: Vec3, radius: number): Vec3 | null => {
@@ -111,11 +113,12 @@ const hitSpehere = (ray: Ray, center: Vec3, radius: number): Vec3 | null => {
   const b = oc.dot(ray.getDirection()) * 2
   const c = oc.dot(oc) - radius * radius
   const discriminant = b * b - 4 * a * c
-  if(discriminant > 0) {
+  if (discriminant > 0) {
     // return the normal vector of the hit point
-    return ray.at(
-        (-b - Math.sqrt(discriminant)) / (2 * a)
-    ).sub(center).normalize()
+    return ray
+        .at((-b - Math.sqrt(discriminant)) / (2 * a))
+        .sub(center)
+        .normalize()
   } else {
     return null
   }

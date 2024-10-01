@@ -89,6 +89,10 @@ export class Vec3 {
         return Math.sqrt(this.dot(this))
     }
 
+    lengthSquared(): number {
+        return this.dot(this)
+    }
+
     normalize(): Vec3 {
         return this.div(this.length())
     }

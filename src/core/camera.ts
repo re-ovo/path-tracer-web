@@ -48,40 +48,57 @@ export class Camera {
         ctx: CanvasRenderingContext2D,
         world: Hittable,
     ): AbortController {
-        const abortController = new AbortController()
+        const abortController = new AbortController();
+        const batchSize = 32
 
-        new Promise(async () => {
-            for (let i = 0; i < this.width; i++) {
-                if (abortController.signal.aborted) break
-                for (let j = 0; j < this.height; j++) {
-                    if (abortController.signal.aborted) break
+        const renderBatch = async (start: number, step: number) => {
+            for (let i = start; i < this.width; i += step) {
+                if (abortController.signal.aborted) break;
+                for (let j = start; j < this.height; j += step) {
+                    if (abortController.signal.aborted) break;
                     const pixelCenter = this.pixel00Loc
                         .add(this.pixelHorizontal.mul(i))
-                        .add(this.pixelVertical.mul(j))
+                        .add(this.pixelVertical.mul(j));
 
-                    let color = new Vec3(0, 0, 0)
+                    let color = new Vec3(0, 0, 0);
                     for (let k = 0; k < this.options.samplesPerPixel; k++) {
                         const rayDir = pixelCenter
                             .add(this.pixelHorizontal.mul(Math.random() - 0.5))
                             .add(this.pixelVertical.mul(Math.random() - 0.5))
                             .sub(this.cameraOrigin)
-                            .normalize()
-                        const ray = new Ray(this.cameraOrigin, rayDir)
-                        const c = this.rayTrace(ray, world, 0)
-                        color = color.add(c)
+                            .normalize();
+                        const ray = new Ray(this.cameraOrigin, rayDir);
+                        const c = this.rayTrace(ray, world, 0);
+                        color = color.add(c);
                     }
-                    drawPixel(ctx, i, j, color.div(this.options.samplesPerPixel))
+                    drawPixel(ctx, i, j, color.div(this.options.samplesPerPixel));
                 }
 
-                if(i % 64 === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0))
+                if (i % batchSize === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
                 }
             }
-        })
+        };
 
-        return abortController
+        const progressiveRender = async () => {
+            let step = 3; // 初始步长
+            while (step > 0) {
+                await renderBatch(0, step);
+                step = Math.floor(step / 2); // 每次将步长减半
+            }
+            console.log('render complete');
+            console.table([{
+                width: this.width,
+                height: this.height,
+                samplesPerPixel: this.options.samplesPerPixel,
+                maxDepth: this.options.maxDepth
+            }]);
+        };
+
+        progressiveRender().then(() => {});
+
+        return abortController;
     }
-
     private rayTrace(ray: Ray, world: Hittable, depth: number): Color {
         if (depth > this.options.maxDepth) return new Vec3(0, 0, 0)
 

@@ -1,5 +1,5 @@
 <template>
-  <canvas ref="canvasRef" class="w-full h-full"/>
+  <canvas ref="canvasRef" class="w-full h-full bg-black"/>
   <div class="absolute top-0 left-0 m-8 backdrop-blur-lg text-white bg-white/20 p-4 rounded-sm flex flex-col gap-2">
     <div class="color-green-5 text-sm">
       FPS: {{ fps }}
@@ -19,6 +19,13 @@
     >
       <span class="text-md font-medium">Cancel</span>
     </button>
+
+    <div class="flex flex-col gap-2">
+      <label for="samplesPerPixel">Samples per pixel:</label>
+      <input type="number" v-model="samplesPerPixel"/>
+      <label for="maxDepth">Max depth:</label>
+      <input type="number" v-model="maxDepth"/>
+    </div>
   </div>
 </template>
 
@@ -37,7 +44,7 @@ let camera: Camera | null = null
 
 const hittables = new HitList([
   new Sphere(
-      new Vec3(0, 0, 3),
+      new Vec3(0.5, 0, 2.5),
       0.5,
       new Lambertian(new Vec3(0.8, 0.6, 0.2)),
   ),
@@ -49,7 +56,7 @@ const hittables = new HitList([
   new Sphere(
       new Vec3(0, 0, 1.5),
       0.5,
-      new Dielectric(1.50),
+      new Dielectric(1.51),
   ),
   new Sphere(
       new Vec3(0, -100.5, 2),
@@ -59,7 +66,12 @@ const hittables = new HitList([
 ])
 
 const cameraPosition = new Vec3(0, 0, 0)
+
+const samplesPerPixel = ref(6)
+const maxDepth = ref(6)
+
 let currentRendering: Ref<AbortController | null> = ref(null)
+
 const render = () => {
   const canvas = canvasRef.value
   if (canvas) {
@@ -73,8 +85,8 @@ const render = () => {
         canvas.height,
         cameraPosition,
         {
-          samplesPerPixel: 4,
-          maxDepth: 8
+          samplesPerPixel: samplesPerPixel.value,
+          maxDepth: maxDepth.value
         },
     )
     currentRendering.value?.abort()
@@ -98,18 +110,32 @@ useEventListener('keypress', ev => {
 
     case 'w':
       cameraPosition.z += 0.1
+      render()
       break
 
     case 's':
       cameraPosition.z -= 0.1
+      render()
       break
 
     case 'a':
       cameraPosition.x -= 0.1
+      render()
       break
 
     case 'd':
       cameraPosition.x += 0.1
+      render()
+      break
+
+    case 'q':
+      cameraPosition.y += 0.1
+      render()
+      break
+
+    case 'e':
+      cameraPosition.y -= 0.1
+      render()
       break
   }
 })

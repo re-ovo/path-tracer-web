@@ -1,3 +1,5 @@
+import {randomFloat} from "@/core/interval";
+
 export class Vec3 {
     private readonly data: number[]
 
@@ -97,7 +99,41 @@ export class Vec3 {
         return this.div(this.length())
     }
 
+    ensureNotZero(fallback: Vec3) {
+        return this.lengthSquared() < 1e-8 ? fallback : this
+    }
+
     static lerp(a: Vec3, b: Vec3, t: number): Vec3 {
         return a.add(b.sub(a).mul(t))
     }
+}
+
+export function randomOnHemisphere(normal: Vec3): Vec3 {
+    let onUnitSphere = randomUnitVector()
+    if (onUnitSphere.dot(normal) > 0.0) {
+        return onUnitSphere
+    } else {
+        return onUnitSphere.mul(-1)
+    }
+}
+
+export function randomUnitVector(): Vec3 {
+    while (true) {
+        let p = new Vec3(randomFloat(-1, 1), randomFloat(-1, 1), randomFloat(-1, 1))
+        let l = p.lengthSquared()
+        if (l <= 1) {
+            return p.div(Math.sqrt(l))
+        }
+    }
+}
+
+export function reflect(v: Vec3, n: Vec3): Vec3 {
+    return v.sub(n.mul(2 * v.dot(n)))
+}
+
+export function refract(uv: Vec3, n: Vec3, etaiOverEtat: number): Vec3 {
+    const cosTheta = Math.min(uv.mul(-1).dot(n), 1.0);
+    const rOutPerp = uv.add(n.mul(cosTheta)).mul(etaiOverEtat);
+    const rOutParallel = n.mul(-Math.sqrt(Math.abs(1.0 - rOutPerp.lengthSquared())));
+    return rOutPerp.add(rOutParallel);
 }

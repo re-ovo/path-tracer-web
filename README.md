@@ -1,33 +1,31 @@
-# path-tracer-web
+# PathTracerWeb
 
-This template should help get you started developing with Vue 3 in Vite.
+一个基于Canvas的软件路径追踪实现
 
-## Recommended IDE Setup
+## 预览
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
 
-## Type Support for `.vue` Imports in TS
+## 使用
+### 安装依赖包
+```bash
+# npm
+npm install 
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+# pnpm
+pnpm install
 
-## Customize configuration
-
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
-
-```sh
+# bun
 bun install
 ```
+### 运行
+    
+```bash
+# npm
+npm run dev
 
-### Compile and Hot-Reload for Development
+# pnpm
+pnpm dev
 
-```sh
+# bun
 bun dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-bun build
 ```

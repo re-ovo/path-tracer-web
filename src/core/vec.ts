@@ -99,6 +99,10 @@ export class Vec3 {
         return this.div(this.length())
     }
 
+    negative(): Vec3 {
+        return this.mul(-1)
+    }
+
     ensureNotZero(fallback: Vec3) {
         return this.lengthSquared() < 1e-8 ? fallback : this
     }

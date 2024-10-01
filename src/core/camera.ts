@@ -4,34 +4,60 @@ import {Ray} from "@/core/ray";
 import {type Color, drawPixel} from "@/core/color";
 import {Interval} from "@/core/interval";
 
+const up = new Vec3(0, 1, 0)
+
 export class Camera {
     private readonly cameraOrigin: Vec3;
+    private readonly lookAt: Vec3;
     private readonly options: RenderOptions;
     private readonly height: number;
     private readonly width: number;
+
     private readonly pixelHorizontal: Vec3;
     private readonly pixelVertical: Vec3;
     private readonly pixel00Loc: Vec3;
 
-    constructor(width: number, height: number, cameraOrigin: Vec3, options: RenderOptions) {
+    readonly w: Vec3
+    readonly u: Vec3
+    readonly v: Vec3
+
+    constructor(
+        width: number,
+        height: number,
+        cameraOrigin: Vec3,
+        cameraLookAt: Vec3,
+        options: RenderOptions,
+    ) {
         this.width = width
         this.height = height
         this.cameraOrigin = cameraOrigin
+        this.lookAt = cameraLookAt
         this.options = options
 
         const aspectRatio = width / height
+        const focalLength = this.lookAt.sub(this.cameraOrigin).length()
 
         // 计算viewport
-        const viewportHeight = 2.0
+        // tan(vfov / 2) = 对边 / 邻边 = 1/2h / focalLength
+        // h = 2*tan(vfov / 2)*focalLength
+        const degreeToRadian = (degree: number) => degree * Math.PI / 180
+        const viewportHeight = 2.0 * focalLength * Math.tan(degreeToRadian(options.vFov) / 2)
         const viewportWidth = aspectRatio * viewportHeight
 
-        const focalLength = 1
+        const w = cameraLookAt.sub(cameraOrigin).normalize()
+        const u = w.cross(up).negative().normalize()
+        const v = w.cross(u).normalize()
+        this.w = w
+        this.u = u
+        this.v = v
 
-        const viewport_horizontal = new Vec3(viewportWidth, 0, 0)
-        const viewport_vertical = new Vec3(0, -viewportHeight, 0)
+        console.log(w, u, v)
+
+        const viewport_horizontal = u.mul(viewportWidth)
+        const viewport_vertical = v.mul(-viewportHeight)
 
         const viewportUpperLeft = cameraOrigin
-            .add(new Vec3(0, 0, focalLength))
+            .add(w.mul(focalLength))
             .sub(viewport_horizontal.div(2))
             .sub(viewport_vertical.div(2))
         console.log('view_port_upper_left', viewportUpperLeft)
@@ -95,10 +121,12 @@ export class Camera {
             }]);
         };
 
-        progressiveRender().then(() => {});
+        progressiveRender().then(() => {
+        });
 
         return abortController;
     }
+
     private rayTrace(ray: Ray, world: Hittable, depth: number): Color {
         if (depth > this.options.maxDepth) return new Vec3(0, 0, 0)
 
@@ -125,6 +153,7 @@ export class Camera {
 
 
 export interface RenderOptions {
+    vFov: number;
     samplesPerPixel: number;
     maxDepth: number;
 }

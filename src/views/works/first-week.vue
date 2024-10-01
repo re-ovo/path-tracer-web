@@ -30,12 +30,12 @@
 </template>
 
 <script setup lang="ts">
-import {computed, type Ref, ref, useTemplateRef} from "vue";
+import {computed, onUnmounted, type Ref, ref, useTemplateRef} from "vue";
 import {Vec3} from "@/core/vec";
 import {useEventListener, useFps, useResizeObserver} from "@vueuse/core";
 import {HitList, Sphere} from "@/core/object";
 import {Camera} from "@/core/camera";
-import {Dielectric, Lambertian, Metal} from "@/core/material";
+import {CookTorrance, Dielectric, Lambertian, Metal} from "@/core/material";
 
 const fps = useFps()
 
@@ -49,14 +49,23 @@ const hittables = new HitList([
       new Lambertian(new Vec3(0.8, 0.6, 0.2)),
   ),
   new Sphere(
-      new Vec3(-0.5, 0, 2),
+      new Vec3(-0.5, 0, 2.5),
       0.5,
       new Lambertian(new Vec3(0.1, 0.2, 0.5)),
   ),
   new Sphere(
-      new Vec3(0, 0, 1.5),
-      0.5,
-      new Dielectric(1.51),
+      new Vec3(-1, 0.2, 0.5),
+      0.34,
+      new CookTorrance(
+          new Vec3(0.8, 0.1, 0.1),
+          0.1,
+          1.0,
+      ),
+  ),
+  new Sphere(
+      new Vec3(0, 0.2, 1.5),
+      0.4,
+      new Dielectric(1.5),
   ),
   new Sphere(
       new Vec3(0, -100.5, 2),
@@ -65,7 +74,8 @@ const hittables = new HitList([
   ),
 ])
 
-const cameraPosition = new Vec3(0, 0, 0)
+let cameraPosition = new Vec3(0, 0, 0)
+const cameraLookAt = new Vec3(0, 0, 2)
 
 const samplesPerPixel = ref(6)
 const maxDepth = ref(6)
@@ -84,9 +94,11 @@ const render = () => {
         canvas.width,
         canvas.height,
         cameraPosition,
+        cameraLookAt,
         {
           samplesPerPixel: samplesPerPixel.value,
-          maxDepth: maxDepth.value
+          maxDepth: maxDepth.value,
+          vFov: 60,
         },
     )
     currentRendering.value?.abort()
@@ -97,34 +109,36 @@ const cancel = () => {
   currentRendering.value?.abort()
   currentRendering.value = null
 }
+onUnmounted(cancel)
 const isRendering = computed(() => {
   if (currentRendering.value) return !currentRendering.value.signal.aborted
   return false
 })
 
 useEventListener('keypress', ev => {
+  if(!camera) return
   switch (ev.key) {
     case 'r':
       render()
       break
 
     case 'w':
-      cameraPosition.z += 0.1
+      cameraPosition = cameraPosition.add(camera.w.mul(0.2))
       render()
       break
 
     case 's':
-      cameraPosition.z -= 0.1
+      cameraPosition = cameraPosition.add(camera.w.mul(-0.2))
       render()
       break
 
     case 'a':
-      cameraPosition.x -= 0.1
+      cameraPosition = cameraPosition.add(camera.u.mul(-0.1))
       render()
       break
 
     case 'd':
-      cameraPosition.x += 0.1
+      cameraPosition = cameraPosition.add(camera.u.mul(0.1))
       render()
       break
 
@@ -138,5 +152,8 @@ useEventListener('keypress', ev => {
       render()
       break
   }
+  ev.preventDefault()
+  ev.stopPropagation()
+  console.log('cameraPos', cameraPosition.x, cameraPosition.y, cameraPosition.z)
 })
 </script>

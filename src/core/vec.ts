@@ -131,6 +131,15 @@ export function randomUnitVector(): Vec3 {
     }
 }
 
+export function randomInUnitDisk(): Vec3 {
+    while (true) {
+        let p = new Vec3(randomFloat(-1, 1), randomFloat(-1, 1), 0)
+        if (p.lengthSquared() < 1) {
+            return p
+        }
+    }
+}
+
 export function reflect(v: Vec3, n: Vec3): Vec3 {
     return v.sub(n.mul(2 * v.dot(n)))
 }

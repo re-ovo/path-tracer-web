@@ -89,8 +89,8 @@ export class Dielectric implements Material {
 
 export class CookTorrance implements Material {
     private readonly albedo: Vec3;
-    private readonly roughness: number;
-    private readonly metallic: number;
+    private readonly roughness: number; // 0 = smooth, 1 = rough
+    private readonly metallic: number; // 1 = pure metal, 0 = pure diffuse
 
     constructor(albedo: Vec3, roughness: number, metallic: number) {
         this.albedo = albedo;
@@ -99,33 +99,39 @@ export class CookTorrance implements Material {
     }
 
     scatter(ray: Ray, hitRecord: HitRecord): ScatterResult {
-        const viewDir = ray.getDirection().negative().normalize();
-        const lightDir = randomUnitVector().normalize();
-        const halfDir = viewDir.add(lightDir).normalize();
+        const viewDir = ray.getDirection().normalize();
+        const normal = hitRecord.normal;
 
-        const NdotL = Math.max(hitRecord.normal.dot(lightDir), 0);
-        const NdotV = Math.max(hitRecord.normal.dot(viewDir), 0);
-        const NdotH = Math.max(hitRecord.normal.dot(halfDir), 0);
-        const VdotH = Math.max(viewDir.dot(halfDir), 0);
+        // Calculate the halfway vector
+        const halfVector = viewDir.negative().add(randomUnitVector()).normalize();
 
-        const F = this.fresnelSchlick(VdotH);
-        const G = this.geometrySmith(NdotV, NdotL);
-        const D = this.normalDistributionFunction(NdotH);
+        // Reflect the view direction around the normal
+        const reflected = reflect(viewDir, normal);
 
-        const numerator = F.mul(G).mul(D);
-        const denominator = 4 * NdotV * NdotL + 1e-7; // Avoid division by zero
+        // Calculate the Fresnel factor
+        const fresnel = this.fresnelSchlick(viewDir.dot(halfVector));
 
-        const specular = numerator.div(denominator);
-        const kS = F;
-        const kD = new Vec3(1, 1, 1).sub(kS).mul(1 - this.metallic);
+        // Calculate the geometric attenuation
+        const geometric = this.geometricAttenuation(viewDir, normal, halfVector);
 
-        const diffuse = kD.mul(this.albedo).div(Math.PI);
+        // Calculate the distribution function
+        const distribution = this.distributionGGX(normal, halfVector);
 
-        const color = diffuse.add(specular).mul(NdotL);
+        // Cook-Torrance BRDF
+        const specular = fresnel.mul(geometric).mul(distribution).div(
+            4 * Math.max(viewDir.dot(normal), 0.001) * Math.max(hitRecord.normal.dot(halfVector), 0.001)
+        );
+
+        // Combine diffuse and specular
+        const oneMinusFresnel = Vec3.ONE.sub(fresnel);
+        const diffuse = this.albedo.mul(1 - this.metallic).mul(oneMinusFresnel);
+        const attenuation = diffuse.add(specular);
+
+        const scattered = reflected.add(randomUnitVector().mul(this.roughness)).normalize();
 
         return {
-            attenuation: color,
-            scattered: new Ray(hitRecord.p, lightDir),
+            attenuation: attenuation,
+            scattered: new Ray(hitRecord.p, scattered),
         };
     }
 
@@ -134,18 +140,25 @@ export class CookTorrance implements Material {
         return F0.add(new Vec3(1, 1, 1).sub(F0).mul(Math.pow(1 - cosTheta, 5)));
     }
 
-    geometrySmith(NdotV: number, NdotL: number): number {
-        const r = this.roughness + 1;
-        const k = (r * r) / 8;
-        const G1 = NdotV / (NdotV * (1 - k) + k);
-        const G2 = NdotL / (NdotL * (1 - k) + k);
-        return G1 * G2;
+    geometricAttenuation(viewDir: Vec3, normal: Vec3, halfVector: Vec3): number {
+        const NdotV = Math.max(normal.dot(viewDir), 0.0);
+        const NdotL = Math.max(normal.dot(halfVector), 0.0);
+        const k = Math.pow(this.roughness + 1, 2) / 8;
+
+        const ggx1 = NdotV / (NdotV * (1 - k) + k);
+        const ggx2 = NdotL / (NdotL * (1 - k) + k);
+
+        return ggx1 * ggx2;
     }
 
-    normalDistributionFunction(NdotH: number): number {
-        const alpha = this.roughness * this.roughness;
-        const alpha2 = alpha * alpha;
-        const denom = (NdotH * NdotH * (alpha2 - 1) + 1);
-        return alpha2 / (Math.PI * denom * denom);
+    distributionGGX(normal: Vec3, halfVector: Vec3): number {
+        const a = this.roughness * this.roughness;
+        const a2 = a * a;
+        const NdotH = Math.max(normal.dot(halfVector), 0.0);
+        const NdotH2 = NdotH * NdotH;
+
+        const num = a2;
+        const denom = (NdotH2 * (a2 - 1) + 1);
+        return num / (Math.PI * denom * denom);
     }
 }

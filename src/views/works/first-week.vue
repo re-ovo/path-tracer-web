@@ -53,15 +53,15 @@ const hittables = new HitList([
       0.5,
       new Lambertian(new Vec3(0.1, 0.2, 0.5)),
   ),
-  new Sphere(
-      new Vec3(-1, 0.2, 0.5),
-      0.34,
-      new CookTorrance(
-          new Vec3(0.8, 0.1, 0.1),
-          0.1,
-          1.0,
-      ),
-  ),
+  // new Sphere(
+  //     new Vec3(-1, 0.2, 0.5),
+  //     0.34,
+  //     new CookTorrance(
+  //         new Vec3(0.8, 0.8, 0.8),
+  //         0.1,
+  //         0.1,
+  //     ),
+  // ),
   new Sphere(
       new Vec3(0, 0.2, 1.5),
       0.4,

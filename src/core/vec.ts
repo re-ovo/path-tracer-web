@@ -110,6 +110,9 @@ export class Vec3 {
     static lerp(a: Vec3, b: Vec3, t: number): Vec3 {
         return a.add(b.sub(a).mul(t))
     }
+
+    static ZERO = new Vec3(0, 0, 0)
+    static ONE = new Vec3(1, 1, 1)
 }
 
 export function randomOnHemisphere(normal: Vec3): Vec3 {

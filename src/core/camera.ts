@@ -130,7 +130,7 @@ export class Camera {
     private rayTrace(ray: Ray, world: Hittable, depth: number): Color {
         if (depth > this.options.maxDepth) return new Vec3(0, 0, 0)
 
-        const hitRecord = world.hit(ray, new Interval(0.01, Infinity))
+        const hitRecord = world.hit(ray, new Interval(0.001, Infinity))
         if (hitRecord) {
             const scatterResult = hitRecord.material.scatter(ray, hitRecord)
             if (scatterResult) {

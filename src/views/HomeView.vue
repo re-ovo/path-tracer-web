@@ -1,10 +1,9 @@
-<script setup lang="ts"></script>
-
 <template>
   <main class="container mx-auto p-4">
     <h1>
       Path Tracer Web
     </h1>
+    <img src="/result.jpg" alt="render result" class="fixed z-[-1] top-0 left-0 w-screen h-screen" />
     <ul>
       <li>
         <router-link to="/">

@@ -20,11 +20,17 @@
       <span class="text-md font-medium">Cancel</span>
     </button>
 
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2 max-w-[12rem] color-black">
       <label for="samplesPerPixel">Samples per pixel:</label>
       <input type="number" v-model="samplesPerPixel"/>
       <label for="maxDepth">Max depth:</label>
       <input type="number" v-model="maxDepth"/>
+      <p>
+        <label for="focusDist">Focus distance:</label>
+        <input type="number" v-model="focusDist"/>
+        <label for="defocusAngle">Defocus angle:</label>
+        <input type="number" v-model="defocusAngle"/>
+      </p>
     </div>
   </div>
 </template>
@@ -42,31 +48,17 @@ const fps = useFps()
 const canvasRef = useTemplateRef<HTMLCanvasElement | null>('canvasRef')
 let camera: Camera | null = null
 
+let cameraPosition = new Vec3(0, 1, -1)
+const cameraLookAt = new Vec3(0, 0, 2)
+
+const samplesPerPixel = ref<number>(6)
+const maxDepth = ref<number>(6)
+const focusDist = ref<number>(1.0)
+const defocusAngle = ref<number>(0.0)
+
+let currentRendering: Ref<AbortController | null> = ref(null)
+
 const hittables = new HitList([
-  new Sphere(
-      new Vec3(0.5, 0, 2.5),
-      0.5,
-      new Lambertian(new Vec3(0.8, 0.6, 0.2)),
-  ),
-  new Sphere(
-      new Vec3(-0.5, 0, 2.5),
-      0.5,
-      new Lambertian(new Vec3(0.1, 0.2, 0.5)),
-  ),
-  // new Sphere(
-  //     new Vec3(-1, 0.2, 0.5),
-  //     0.34,
-  //     new CookTorrance(
-  //         new Vec3(0.8, 0.8, 0.8),
-  //         0.1,
-  //         0.1,
-  //     ),
-  // ),
-  new Sphere(
-      new Vec3(0, 0.2, 1.5),
-      0.4,
-      new Dielectric(1.5),
-  ),
   new Sphere(
       new Vec3(0, -100.5, 2),
       100,
@@ -74,13 +66,20 @@ const hittables = new HitList([
   ),
 ])
 
-let cameraPosition = new Vec3(0, 0, 0)
-const cameraLookAt = new Vec3(0, 0, 2)
-
-const samplesPerPixel = ref(6)
-const maxDepth = ref(6)
-
-let currentRendering: Ref<AbortController | null> = ref(null)
+// 随机创建球体
+const amount = 30
+for (let i = 0; i < amount; i++) {
+  const center = new Vec3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1)
+  const radius = Math.random() * 0.2 + 0.1
+  const chooseMaterial = Math.random()
+  if (chooseMaterial < 0.5) {
+    hittables.add(new Sphere(center, radius, new Lambertian(new Vec3(Math.random(), Math.random(), Math.random()))))
+  } else if (chooseMaterial < 0.8) {
+    hittables.add(new Sphere(center, radius, new Metal(new Vec3(Math.random(), Math.random(), Math.random()), 0.1)))
+  } else {
+    hittables.add(new Sphere(center, radius, new Dielectric(1.5)))
+  }
+}
 
 const render = () => {
   const canvas = canvasRef.value
@@ -98,7 +97,9 @@ const render = () => {
         {
           samplesPerPixel: samplesPerPixel.value,
           maxDepth: maxDepth.value,
-          vFov: 60,
+          vFov: 75,
+          defocusAngle: defocusAngle.value,
+          focusDist: focusDist.value,
         },
     )
     currentRendering.value?.abort()
@@ -116,7 +117,7 @@ const isRendering = computed(() => {
 })
 
 useEventListener('keypress', ev => {
-  if(!camera) return
+  if (!camera) return
   switch (ev.key) {
     case 'r':
       render()

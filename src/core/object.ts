@@ -41,6 +41,10 @@ export class HitList implements Hittable {
         this.list = list;
     }
 
+    add(hittable: Hittable) {
+        this.list.push(hittable);
+    }
+
     hit(ray: Ray, interval: Interval): HitRecord | null {
         let closest = interval.max;
         let record: HitRecord | null = null;

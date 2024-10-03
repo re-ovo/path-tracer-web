@@ -1,5 +1,5 @@
 import {type Hittable} from "@/core/object";
-import {Vec3} from "@/core/vec";
+import {randomInUnitDisk, Vec3} from "@/core/vec";
 import {Ray} from "@/core/ray";
 import {type Color, drawPixel} from "@/core/color";
 import {Interval} from "@/core/interval";
@@ -16,6 +16,9 @@ export class Camera {
     private readonly pixelHorizontal: Vec3;
     private readonly pixelVertical: Vec3;
     private readonly pixel00Loc: Vec3;
+
+    private readonly defocusDiskU: Vec3;
+    private readonly defocusDiskV: Vec3;
 
     readonly w: Vec3
     readonly u: Vec3
@@ -35,13 +38,13 @@ export class Camera {
         this.options = options
 
         const aspectRatio = width / height
-        const focalLength = this.lookAt.sub(this.cameraOrigin).length()
 
         // 计算viewport
         // tan(vfov / 2) = 对边 / 邻边 = 1/2h / focalLength
         // h = 2*tan(vfov / 2)*focalLength
         const degreeToRadian = (degree: number) => degree * Math.PI / 180
-        const viewportHeight = 2.0 * focalLength * Math.tan(degreeToRadian(options.vFov) / 2)
+
+        const viewportHeight = 2.0 * options.focusDist * Math.tan(degreeToRadian(options.vFov) / 2)
         const viewportWidth = aspectRatio * viewportHeight
 
         const w = cameraLookAt.sub(cameraOrigin).normalize()
@@ -57,7 +60,7 @@ export class Camera {
         const viewport_vertical = v.mul(-viewportHeight)
 
         const viewportUpperLeft = cameraOrigin
-            .add(w.mul(focalLength))
+            .add(w.mul(options.focusDist))
             .sub(viewport_horizontal.div(2))
             .sub(viewport_vertical.div(2))
         console.log('view_port_upper_left', viewportUpperLeft)
@@ -67,8 +70,30 @@ export class Camera {
         this.pixel00Loc = viewportUpperLeft
             .add(this.pixelHorizontal.mul(0.5))
             .add(this.pixelVertical.mul(0.5))
+
+        // 计算散焦参数
+        const defocusRadius = options.focusDist * Math.tan(degreeToRadian(options.defocusAngle / 2))
+        this.defocusDiskU = u.mul(defocusRadius)
+        this.defocusDiskV = v.mul(defocusRadius)
     }
 
+    private generateRay(i: number, j: number) {
+        const pixelCenter = this.pixel00Loc
+            .add(this.pixelHorizontal.mul(i))
+            .add(this.pixelVertical.mul(j));
+        const rayDir = pixelCenter
+            .add(this.pixelHorizontal.mul(Math.random() - 0.5))
+            .add(this.pixelVertical.mul(Math.random() - 0.5))
+            .sub(this.cameraOrigin)
+            .normalize();
+        const rayOrigin = this.options.defocusAngle <= 0 ? this.cameraOrigin : this.generateOrigin()
+        return new Ray(rayOrigin, rayDir);
+    }
+
+    private generateOrigin() {
+        const p = randomInUnitDisk()
+        return this.cameraOrigin.add(this.defocusDiskU.mul(p.x)).add(this.defocusDiskV.mul(p.y))
+    }
 
     render(
         ctx: CanvasRenderingContext2D,
@@ -82,18 +107,9 @@ export class Camera {
                 if (abortController.signal.aborted) break;
                 for (let j = start; j < this.height; j += step) {
                     if (abortController.signal.aborted) break;
-                    const pixelCenter = this.pixel00Loc
-                        .add(this.pixelHorizontal.mul(i))
-                        .add(this.pixelVertical.mul(j));
-
                     let color = new Vec3(0, 0, 0);
                     for (let k = 0; k < this.options.samplesPerPixel; k++) {
-                        const rayDir = pixelCenter
-                            .add(this.pixelHorizontal.mul(Math.random() - 0.5))
-                            .add(this.pixelVertical.mul(Math.random() - 0.5))
-                            .sub(this.cameraOrigin)
-                            .normalize();
-                        const ray = new Ray(this.cameraOrigin, rayDir);
+                        const ray = this.generateRay(i, j)
                         const c = this.rayTrace(ray, world, 0);
                         color = color.add(c);
                     }
@@ -153,6 +169,8 @@ export class Camera {
 
 
 export interface RenderOptions {
+    focusDist: number;
+    defocusAngle: number;
     vFov: number;
     samplesPerPixel: number;
     maxDepth: number;

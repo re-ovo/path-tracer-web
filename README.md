@@ -2,6 +2,8 @@
 
 一个基于Canvas的软件路径追踪实现
 
+<img src="/public/result.jpg" width="400px" />
+
 ## 预览
 
 

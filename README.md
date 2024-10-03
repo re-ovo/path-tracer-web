@@ -2,13 +2,14 @@
 
 一个基于Canvas的软件路径追踪实现
 
-<img src="/public/result.jpg" width="400px" />
-
 ## 预览
 
+<img src="/public/result.jpg" width="400px" />
 
 ## 使用
+
 ### 安装依赖包
+
 ```bash
 # npm
 npm install 
@@ -19,8 +20,9 @@ pnpm install
 # bun
 bun install
 ```
+
 ### 运行
-    
+
 ```bash
 # npm
 npm run dev

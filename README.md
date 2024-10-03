@@ -4,7 +4,31 @@
 
 ## 预览
 
-<img src="/public/result.jpg" width="400px" />
+<img src="/public/result.jpg" width="75%"  alt=""/>
+
+## 功能
+
+- 相机
+    - [x] FOV
+    - [x] 焦距/焦散
+    - [x] 控制(WASD, QE)
+
+- 材质
+    - [x] Lambertian
+    - [x] Metal
+    - [x] Dielectric
+    - [ ] PBR
+
+- 光源
+    - [ ] Directional
+    - [ ] Point
+    - [ ] Area
+- 物体
+    - [x] Sphere
+    - [ ] Mesh
+
+- [ ] BVH加速
+- [ ] GLTF场景加载
 
 ## 使用
 

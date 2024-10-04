@@ -18,8 +18,16 @@ export class Interval {
     clamp(v: number): number {
         return Math.max(this.min, Math.min(v, this.max));
     }
+
+    clone(): Interval {
+        return new Interval(this.min, this.max);
+    }
 }
 
 export function randomFloat(min: number, max: number): number {
     return Math.random() * (max - min) + min
+}
+
+export function randomInteger(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min
 }

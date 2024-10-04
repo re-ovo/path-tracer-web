@@ -21,11 +21,18 @@
     </button>
 
     <div class="flex flex-col gap-2 max-w-[12rem] color-black">
-      <label for="samplesPerPixel">Samples per pixel:</label>
-      <input type="number" v-model="samplesPerPixel"/>
-      <label for="maxDepth">Max depth:</label>
-      <input type="number" v-model="maxDepth"/>
-      <p>
+      <p class="control-area">
+        <label>BVH加速</label>
+        <input type="checkbox" v-model="useBVH"/>
+        {{useBVH}}
+      </p>
+      <p class="control-area">
+        <label for="samplesPerPixel">Samples per pixel:</label>
+        <input type="number" v-model="samplesPerPixel"/>
+        <label for="maxDepth">Max depth:</label>
+        <input type="number" v-model="maxDepth"/>
+      </p>
+      <p class="control-area">
         <label for="focusDist">Focus distance:</label>
         <input type="number" v-model="focusDist"/>
         <label for="defocusAngle">Defocus angle:</label>
@@ -39,17 +46,18 @@
 import {computed, onUnmounted, type Ref, ref, useTemplateRef} from "vue";
 import {Vec3} from "@/core/vec";
 import {useEventListener, useFps, useResizeObserver} from "@vueuse/core";
-import {HitList, Sphere} from "@/core/object";
+import {HitList, type Hittable, Sphere} from "@/core/object";
 import {Camera} from "@/core/camera";
 import {CookTorrance, Dielectric, Lambertian, Metal} from "@/core/material";
+import {BVHNode} from "@/core/bvh";
 
 const fps = useFps()
 
 const canvasRef = useTemplateRef<HTMLCanvasElement | null>('canvasRef')
 let camera: Camera | null = null
 
-let cameraPosition = new Vec3(0, 1, -1)
-const cameraLookAt = new Vec3(0, 0, 2)
+let cameraPosition = new Vec3(0, 1, -2)
+const cameraLookAt = new Vec3(0, 2, 2)
 
 const samplesPerPixel = ref<number>(6)
 const maxDepth = ref<number>(6)
@@ -58,28 +66,32 @@ const defocusAngle = ref<number>(0.0)
 
 let currentRendering: Ref<AbortController | null> = ref(null)
 
-const hittables = new HitList([
+const hittables: Hittable[] = [
   new Sphere(
       new Vec3(0, -100.5, 2),
       100,
       new Lambertian(new Vec3(0.8, 0.8, 0.8)),
   ),
-])
+]
 
 // 随机创建球体
-const amount = 30
+const amount = 50
 for (let i = 0; i < amount; i++) {
   const center = new Vec3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1)
   const radius = Math.random() * 0.2 + 0.1
   const chooseMaterial = Math.random()
   if (chooseMaterial < 0.5) {
-    hittables.add(new Sphere(center, radius, new Lambertian(new Vec3(Math.random(), Math.random(), Math.random()))))
+    hittables.push(new Sphere(center, radius, new Lambertian(new Vec3(Math.random(), Math.random(), Math.random()))))
   } else if (chooseMaterial < 0.8) {
-    hittables.add(new Sphere(center, radius, new Metal(new Vec3(Math.random(), Math.random(), Math.random()), 0.1)))
+    hittables.push(new Sphere(center, radius, new Metal(new Vec3(Math.random(), Math.random(), Math.random()), 0.1)))
   } else {
-    hittables.add(new Sphere(center, radius, new Dielectric(1.5)))
+    hittables.push(new Sphere(center, radius, new Dielectric(1.5)))
   }
 }
+const useBVH = ref<boolean>(true)
+const world = computed(() => {
+  return useBVH.value ? new HitList([new BVHNode(hittables, 0, hittables.length)]) : new HitList(hittables)
+})
 
 const render = () => {
   const canvas = canvasRef.value
@@ -103,7 +115,7 @@ const render = () => {
         },
     )
     currentRendering.value?.abort()
-    currentRendering.value = camera.render(ctx, hittables)
+    currentRendering.value = camera.render(ctx, world.value)
   }
 }
 const cancel = () => {
@@ -158,3 +170,12 @@ useEventListener('keypress', ev => {
   console.log('cameraPos', cameraPosition.x, cameraPosition.y, cameraPosition.z)
 })
 </script>
+
+<style scoped>
+p.control-area {
+  border: 1px solid #202020;
+  padding: 4px;
+  border-radius: 4px;
+  margin: 0;
+}
+</style>

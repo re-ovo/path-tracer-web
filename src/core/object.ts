@@ -2,8 +2,11 @@ import {Ray} from "@/core/ray";
 import {Vec3} from "@/core/vec";
 import {Interval} from "@/core/interval";
 import {type Material} from "@/core/material";
+import {AABB} from "@/core/aabb";
 
 export interface Hittable {
+    boundingBox: AABB;
+
     hit(ray: Ray, interval: Interval): HitRecord | null;
 }
 
@@ -35,14 +38,12 @@ export class HitRecord {
 }
 
 export class HitList implements Hittable {
+    boundingBox: AABB;
     private readonly list: Hittable[];
 
     constructor(list: Hittable[]) {
         this.list = list;
-    }
-
-    add(hittable: Hittable) {
-        this.list.push(hittable);
+        this.boundingBox = AABB.mergeMany(list.map(obj => obj.boundingBox))
     }
 
     hit(ray: Ray, interval: Interval): HitRecord | null {
@@ -62,6 +63,7 @@ export class HitList implements Hittable {
 }
 
 export class Sphere implements Hittable {
+    boundingBox: AABB;
     center: Vec3;
     radius: number;
     material: Material;
@@ -70,6 +72,12 @@ export class Sphere implements Hittable {
         this.center = center;
         this.radius = radius;
         this.material = material;
+
+        const rVec = new Vec3(radius, radius, radius)
+        this.boundingBox = new AABB(
+            center.sub(rVec),
+            center.add(rVec)
+        )
     }
 
     hit(ray: Ray, interval: Interval): HitRecord | null {

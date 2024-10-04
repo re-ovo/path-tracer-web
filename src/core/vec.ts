@@ -7,6 +7,10 @@ export class Vec3 {
         this.data = [x, y, z]
     }
 
+    axis(i: number) {
+        return this.data[i]
+    }
+
     get x() {
         return this.data[0]
     }
@@ -105,6 +109,10 @@ export class Vec3 {
 
     ensureNotZero(fallback: Vec3) {
         return this.lengthSquared() < 1e-8 ? fallback : this
+    }
+
+    toString(): string {
+        return `[${this.x}, ${this.y}, ${this.z}]`
     }
 
     static lerp(a: Vec3, b: Vec3, t: number): Vec3 {

@@ -123,12 +123,16 @@ export class Camera {
         };
 
         const progressiveRender = async () => {
-            let step = 3; // 初始步长
+            const startTime = Date.now()
+
+            let step = 1; // 初始步长
             while (step > 0) {
                 await renderBatch(0, step);
                 step = Math.floor(step / 2); // 每次将步长减半
             }
-            console.log('render complete');
+
+            const endTime = Date.now()
+            console.log(`render complete, ${endTime - startTime}ms`)
             console.table([{
                 width: this.width,
                 height: this.height,

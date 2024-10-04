@@ -112,7 +112,7 @@ const hittables: Hittable[] = [
   ),
   // objects
   new Sphere(
-      new Vec3(0.7, 0.15, 0.3),
+      new Vec3(0.8, 0.15, 0.3),
       0.15,
       new Lambertian(
           new ImageTexture('/2k_earth_daymap.jpg')
@@ -121,12 +121,19 @@ const hittables: Hittable[] = [
   new Sphere(
       new Vec3(0.5, 0.5, 0.5),
       0.2,
-      new Metal(new Vec3(0.5, 0.5, 0.5), 0.1)
+      new Metal(new Vec3(0.5, 0.5, 0.5), 0.1),
   ),
-    new Sphere(
+  new Sphere(
       new Vec3(0.23, 0.2, 0.3),
       0.2,
-      new Dielectric(1.5)
+      new Dielectric(1.5),
+  ),
+  ...Quad.createCube(
+      new Vec3(0.5, 0.06, 0.5),
+      0.12,
+      0.12,
+      0.12,
+      new Metal(new Vec3(0.5, 0.5, 0.5), 0.1)
   ),
 ]
 

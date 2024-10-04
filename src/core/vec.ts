@@ -63,6 +63,10 @@ export class Vec3 {
         }
     }
 
+    isNaN(): boolean {
+        return isNaN(this.x) || isNaN(this.y) || isNaN(this.z)
+    }
+
     div(v: Vec3 | number): Vec3 {
         if (typeof v === 'number') {
             return new Vec3(
@@ -107,6 +111,28 @@ export class Vec3 {
         return this.mul(-1)
     }
 
+    abs(): Vec3 {
+        return new Vec3(
+            Math.abs(this.x),
+            Math.abs(this.y),
+            Math.abs(this.z)
+        )
+    }
+
+    addToThis(v: Vec3): Vec3 {
+        this.x += v.x
+        this.y += v.y
+        this.z += v.z
+        return this
+    }
+
+    mulToThis(v: Vec3): Vec3 {
+        this.x *= v.x
+        this.y *= v.y
+        this.z *= v.z
+        return this
+    }
+
     ensureNotZero(fallback: Vec3) {
         return this.lengthSquared() < 1e-8 ? fallback : this
     }
@@ -119,8 +145,19 @@ export class Vec3 {
         return a.add(b.sub(a).mul(t))
     }
 
+    static hexColor(hex: string): Vec3 {
+        return new Vec3(
+            parseInt(hex.substring(1, 3), 16) / 255,
+            parseInt(hex.substring(3, 5), 16) / 255,
+            parseInt(hex.substring(5, 7), 16) / 255
+        )
+    }
+
     static ZERO = new Vec3(0, 0, 0)
     static ONE = new Vec3(1, 1, 1)
+    static RED = new Vec3(1, 0, 0)
+    static GREEN = new Vec3(0, 1, 0)
+    static BLUE = new Vec3(0, 0, 1)
 }
 
 export function randomOnHemisphere(normal: Vec3): Vec3 {

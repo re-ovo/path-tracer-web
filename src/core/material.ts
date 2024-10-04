@@ -1,6 +1,5 @@
 import {HitRecord, Ray} from "@/core/ray";
-import {Vec3} from "@/core/vec";
-import {randomUnitVector, reflect, refract} from "@/core/vec";
+import {randomUnitVector, reflect, refract, Vec3} from "@/core/vec";
 import {SolidColor, type Texture} from "@/core/texture";
 import type {Color} from "@/core/color";
 
@@ -121,66 +120,79 @@ export class CookTorrance implements Material {
     }
 
     scatter(ray: Ray, hitRecord: HitRecord): ScatterResult {
-        const viewDir = ray.getDirection().normalize();
-        const normal = hitRecord.normal;
+        const viewDir = ray.getDirection().normalize().negative();
+        const normal = hitRecord.normal.normalize();
 
-        // Calculate the halfway vector
-        const halfVector = viewDir.negative().add(randomUnitVector()).normalize();
+        // Generate a random microfacet normal using the roughness
+        const halfVector = this.sampleMicrofacetNormal(normal);
 
-        // Reflect the view direction around the normal
-        const reflected = reflect(viewDir, normal);
+        // Calculate the reflection direction
+        const reflectDir = reflect(viewDir, halfVector);
 
-        // Calculate the Fresnel factor
-        const fresnel = this.fresnelSchlick(viewDir.dot(halfVector));
+        // Calculate Fresnel term using Schlick's approximation
+        const F0 = this.metallic === 1 ? this.albedo : new Vec3(0.04, 0.04, 0.04);
+        const F = this.fresnelSchlick(viewDir.dot(halfVector), F0);
 
-        // Calculate the geometric attenuation
-        const geometric = this.geometricAttenuation(viewDir, normal, halfVector);
+        // Calculate the geometry attenuation
+        const G = this.geometrySmith(normal, viewDir, reflectDir);
 
-        // Calculate the distribution function
-        const distribution = this.distributionGGX(normal, halfVector);
+        // Calculate the normal distribution function
+        const D = this.normalDistribution(halfVector, normal);
 
         // Cook-Torrance BRDF
-        const specular = fresnel.mul(geometric).mul(distribution).div(
-            4 * Math.max(viewDir.dot(normal), 0.001) * Math.max(hitRecord.normal.dot(halfVector), 0.001)
-        );
+        const NdotV = Math.max(viewDir.dot(normal), 0.0);
+        const NdotL = Math.max(reflectDir.dot(normal), 0.0);
+        const denominator = 4 * NdotV * NdotL + 1e-5; // Add a small epsilon to prevent division by zero
+        const specular = F.mul(G).mul(D).div(denominator);
 
-        // Combine diffuse and specular
-        const oneMinusFresnel = Vec3.ONE.sub(fresnel);
-        const diffuse = this.albedo.mul(1 - this.metallic).mul(oneMinusFresnel);
-        const attenuation = diffuse.add(specular);
+        // Mix between diffuse and specular
+        const kS = F;
+        const kD = new Vec3(1.0, 1.0, 1.0).sub(kS).mul(1.0 - this.metallic);
+        const diffuse = this.albedo.div(Math.PI);
 
-        const scattered = reflected.add(randomUnitVector().mul(this.roughness)).normalize();
+        // Final color
+        const color = diffuse.mul(kD).add(specular);
+
+        if(color.isNaN()) {
+            console.log(diffuse, specular)
+        }
 
         return {
-            attenuation: attenuation,
-            scattered: new Ray(hitRecord.p, scattered),
+            attenuation: color,
+            scattered: new Ray(hitRecord.p, reflectDir),
         };
     }
 
-    fresnelSchlick(cosTheta: number): Vec3 {
-        const F0 = Vec3.lerp(new Vec3(0.04, 0.04, 0.04), this.albedo, this.metallic);
-        return F0.add(new Vec3(1, 1, 1).sub(F0).mul(Math.pow(1 - cosTheta, 5)));
+    private fresnelSchlick(cosTheta: number, F0: Vec3): Vec3 {
+        return F0.add(new Vec3(1.0, 1.0, 1.0).sub(F0).mul(Math.pow(1.0 - cosTheta, 5.0)));
     }
 
-    geometricAttenuation(viewDir: Vec3, normal: Vec3, halfVector: Vec3): number {
+    private geometrySmith(normal: Vec3, viewDir: Vec3, reflectDir: Vec3): number {
         const NdotV = Math.max(normal.dot(viewDir), 0.0);
-        const NdotL = Math.max(normal.dot(halfVector), 0.0);
-        const k = Math.pow(this.roughness + 1, 2) / 8;
+        const NdotL = Math.max(normal.dot(reflectDir), 0.0);
+        const k = (this.roughness + 1.0) * (this.roughness + 1.0) / 8.0;
 
-        const ggx1 = NdotV / (NdotV * (1 - k) + k);
-        const ggx2 = NdotL / (NdotL * (1 - k) + k);
+        const G1V = NdotV / (NdotV * (1.0 - k) + k);
+        const G1L = NdotL / (NdotL * (1.0 - k) + k);
 
-        return ggx1 * ggx2;
+        return G1V * G1L;
     }
 
-    distributionGGX(normal: Vec3, halfVector: Vec3): number {
-        const a = this.roughness * this.roughness;
-        const a2 = a * a;
+    private normalDistribution(halfVector: Vec3, normal: Vec3): number {
+        const alpha = this.roughness * this.roughness;
+        const alpha2 = alpha * alpha;
         const NdotH = Math.max(normal.dot(halfVector), 0.0);
         const NdotH2 = NdotH * NdotH;
 
-        const num = a2;
-        const denom = (NdotH2 * (a2 - 1) + 1);
-        return num / (Math.PI * denom * denom);
+        const nom = alpha2;
+        const denom = (NdotH2 * (alpha2 - 1.0) + 1.0);
+        return nom / (Math.PI * denom * denom);
+    }
+
+    private sampleMicrofacetNormal(normal: Vec3): Vec3 {
+        // Sample a microfacet normal based on roughness
+        // This is a placeholder function. In practice, you would use a sampling technique
+        // like GGX importance sampling.
+        return normal.add(randomUnitVector().mul(this.roughness)).normalize();
     }
 }

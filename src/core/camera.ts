@@ -102,11 +102,11 @@ export class Camera {
         const abortController = new AbortController();
         const renderBatch = async (start: number, step: number) => {
             let renderedPixel = 0
-            for (let i = start; i < this.width; i += step) {
+            for (let i = this.width - 1; i >= 0; i -= step) {
                 if (abortController.signal.aborted) break;
                 for (let j = start; j < this.height; j += step) {
                     if (abortController.signal.aborted) break;
-                    let color = new Vec3(0, 0, 0);
+                    let color = Vec3.ZERO
                     for (let k = 0; k < this.options.samplesPerPixel; k++) {
                         const ray = this.generateRay(i, j)
                         const c = this.rayTrace(ray, world, 0);
@@ -114,7 +114,7 @@ export class Camera {
                     }
                     drawPixel(ctx, i, j, color.div(this.options.samplesPerPixel));
 
-                    if(++renderedPixel > 2048) {
+                    if(++renderedPixel > 1024 * 4) {
                         renderedPixel = 0
                         await new Promise(resolve => setTimeout(resolve, 0));
                     }
@@ -173,8 +173,6 @@ export class Camera {
 
         // fake sky
         return Vec3.ZERO
-        const a = 0.5 * (ray.getDirection().y + 1.0)
-        return new Vec3(1.0, 1.0, 1.0).mul(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).mul(a));
     }
 }
 

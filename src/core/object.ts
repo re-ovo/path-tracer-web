@@ -1,7 +1,7 @@
 import {HitRecord, Ray} from "@/core/ray";
 import {Vec3} from "@/core/vec";
 import {Interval} from "@/core/interval";
-import {type Material} from "@/core/material";
+import {Lambertian, type Material} from "@/core/material";
 import {AABB} from "@/core/aabb";
 
 export interface Hittable {
@@ -164,5 +164,57 @@ export class Quad implements Hittable {
         record.setNormal(ray.getDirection(), this.normal);
 
         return record;
+    }
+
+    static createCube(center: Vec3, width: number, height: number, depth: number, material: Material): Quad[] {
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
+        const halfDepth = depth / 2;
+
+        // Create quads for each face of the cube
+        return [
+            // Front face
+            new Quad(
+                center.add(new Vec3(-halfWidth, -halfHeight, -halfDepth)),
+                new Vec3(width, 0, 0),
+                new Vec3(0, height, 0),
+                material
+            ),
+            // Back face
+            new Quad(
+                center.add(new Vec3(-halfWidth, -halfHeight, halfDepth)),
+                new Vec3(width, 0, 0),
+                new Vec3(0, height, 0),
+                material
+            ),
+            // Top face
+            new Quad(
+                center.add(new Vec3(-halfWidth, halfHeight, -halfDepth)),
+                new Vec3(width, 0, 0),
+                new Vec3(0, 0, depth),
+                material
+            ),
+            // Bottom face
+            new Quad(
+                center.add(new Vec3(-halfWidth, -halfHeight, -halfDepth)),
+                new Vec3(width, 0, 0),
+                new Vec3(0, 0, depth),
+                material
+            ),
+            // Left face
+            new Quad(
+                center.add(new Vec3(-halfWidth, -halfHeight, -halfDepth)),
+                new Vec3(0, height, 0),
+                new Vec3(0, 0, depth),
+                material
+            ),
+            // Right face
+            new Quad(
+                center.add(new Vec3(halfWidth, -halfHeight, -halfDepth)),
+                new Vec3(0, height, 0),
+                new Vec3(0, 0, depth),
+                material
+            )
+        ];
     }
 }

@@ -114,7 +114,7 @@ export class Camera {
                     }
                     drawPixel(ctx, i, j, color.div(this.options.samplesPerPixel));
 
-                    if(++renderedPixel > 1024 * 4) {
+                    if(++renderedPixel > 1024) {
                         renderedPixel = 0
                         await new Promise(resolve => setTimeout(resolve, 0));
                     }
@@ -147,7 +147,7 @@ export class Camera {
             ctx.font = "14px Arial";
             ctx.fillStyle = "white";
             ctx.textRendering = "optimizeLegibility";
-            ctx.fillText(`${this.width}x${this.height} ${this.options.samplesPerPixel} spp ${this.options.maxDepth} maxDepth`, 100, 100);
+            ctx.fillText(`${this.width}x${this.height}\n采样次数: ${this.options.samplesPerPixel}\n深度: ${this.options.maxDepth}`, 100, 100);
         });
 
         return abortController;

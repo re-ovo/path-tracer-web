@@ -1,34 +1,14 @@
 # PathTracerWeb
 
-一个基于Canvas的软件路径追踪实现
+一个基于Canvas的软件路径追踪实现, 纯TS实现，支持BVH加速，支持多种材质和纹理贴图
 
-## 预览
+## 渲染效果
+
+采样次数32, 递归深度6:
+
+<img src="/public/result2.jpg" width="75%" alt="">
 
 <img src="/public/result.jpg" width="75%"  alt=""/>
-
-## 功能
-
-- 相机
-    - [x] FOV
-    - [x] 焦距/焦散
-    - [x] 控制(WASD, QE)
-
-- 材质
-    - [x] Lambertian
-    - [x] Metal
-    - [x] Dielectric
-    - [ ] PBR
-
-- 光源
-    - [ ] Directional
-    - [ ] Point
-    - [ ] Area
-- 物体
-    - [x] Sphere
-    - [ ] Mesh
-
-- [ ] BVH加速
-- [ ] GLTF场景加载
 
 ## 使用
 

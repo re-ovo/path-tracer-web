@@ -1,6 +1,6 @@
 <template>
   <canvas ref="canvasRef" class="w-full h-full bg-black"/>
-  <div class="absolute top-0 left-0 m-8 backdrop-blur-lg text-white bg-white/20 p-4 rounded-sm flex flex-col gap-2">
+  <div class="absolute top-8rem left-0 m-8 backdrop-blur-lg text-white bg-white/20 p-4 rounded-sm flex flex-col gap-2">
     <div class="color-green-5 text-sm">
       FPS: {{ fps }}
     </div>
@@ -28,22 +28,22 @@
       </p>
       <p class="control-area">
         <label for="samplesPerPixel">Samples per pixel:</label>
-        <input type="number" v-model="samplesPerPixel"/>
+        <input type="number" v-model="cameraOptions.samplesPerPixel"/>
         <label for="maxDepth">Max depth:</label>
-        <input type="number" v-model="maxDepth"/>
+        <input type="number" v-model="cameraOptions.maxDepth"/>
       </p>
       <p class="control-area">
         <label for="focusDist">Focus distance:</label>
-        <input type="number" v-model="focusDist"/>
+        <input type="number" v-model="cameraOptions.focusDist"/>
         <label for="defocusAngle">Defocus angle:</label>
-        <input type="number" v-model="defocusAngle"/>
+        <input type="number" v-model="cameraOptions.defocusAngle"/>
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, onUnmounted, type Ref, ref, useTemplateRef} from "vue";
+import {computed, onUnmounted, type Ref, ref, toRaw, useTemplateRef} from "vue";
 import {Vec3} from "@/core/vec";
 import {useEventListener, useFps, useResizeObserver} from "@vueuse/core";
 import {HitList, type Hittable, Quad, Sphere} from "@/core/object";
@@ -60,10 +60,13 @@ let camera: Camera | null = null
 let cameraPosition = new Vec3(0.5, 0.55, -0.6)
 const cameraLookAt = new Vec3(0.5, 0.5, 0.5)
 
-const samplesPerPixel = ref<number>(6)
-const maxDepth = ref<number>(6)
-const focusDist = ref<number>(1.0)
-const defocusAngle = ref<number>(0.0)
+const cameraOptions = ref({
+  samplesPerPixel: 32,
+  maxDepth: 6,
+  vFov: 75,
+  defocusAngle: 0.0,
+  focusDist: 1.0,
+})
 
 let currentRendering: Ref<AbortController | null> = ref(null)
 
@@ -153,7 +156,7 @@ for (let i = 0; i < amount; i++) {
 }
 const useBVH = ref<boolean>(true)
 const world = computed(() => {
-  return useBVH.value ? new HitList([new BVHNode(hittables, 0, hittables.length)]) : new HitList(hittables)
+  return useBVH.value ? new BVHNode(hittables, 0, hittables.length) : new HitList(hittables)
 })
 
 const render = () => {
@@ -169,13 +172,7 @@ const render = () => {
         canvas.height,
         cameraPosition,
         cameraLookAt,
-        {
-          samplesPerPixel: samplesPerPixel.value,
-          maxDepth: maxDepth.value,
-          vFov: 75,
-          defocusAngle: defocusAngle.value,
-          focusDist: focusDist.value,
-        },
+        cameraOptions.value,
     )
     currentRendering.value?.abort()
     currentRendering.value = camera.render(ctx, world.value)

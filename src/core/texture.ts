@@ -31,23 +31,37 @@ export class ImageTexture implements Texture {
         const img = new Image();
         img.onload = () => {
             const ctx = document.createElement("canvas").getContext("2d");
+            ctx!.canvas.width = img.width;
+            ctx!.canvas.height = img.height;
             ctx!.drawImage(img, 0, 0);
             this.data = ctx!.getImageData(0, 0, img.width, img.height);
         }
         img.src = path;
     }
 
-    value(u: number, v: number, p: Vec3): Color {
-        if (this.data === null) return new Vec3(0, 0, 0);
+    getPixelAt(x: number, y: number): Color {
+        const index = (y * this.data!.width + x) * 4;
+        return new Vec3(
+            this.data!.data[index] / 255,
+            this.data!.data[index + 1] / 255,
+            this.data!.data[index + 2] / 255
+        );
+    }
 
-        const uClamped = Math.min(Math.max(u, 0), 1);
-        const vClamped = Math.min(Math.max(v, 0), 1);
+    uvRepeat(value: number): number {
+        // repeat uv at 0 to 1
+        return value - Math.floor(value);
+    }
+
+    value(u: number, v: number, p: Vec3): Color {
+        if (this.data === null) return new Vec3(1, 0, 0);
+
+        const uClamped = this.uvRepeat(u);
+        const vClamped = this.uvRepeat(v * -1); // flip v
 
         const i = Math.floor(uClamped * this.data.width);
         const j = Math.floor(vClamped * this.data.height);
-        const index = (j * this.data.width + i) * 4;
 
-        const pixel = this.data.data;
-        return new Vec3(pixel[index] / 255, pixel[index + 1] / 255, pixel[index + 2] / 255);
+        return this.getPixelAt(i, j);
     }
 }

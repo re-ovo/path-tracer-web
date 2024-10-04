@@ -100,9 +100,8 @@ export class Camera {
         world: Hittable,
     ): AbortController {
         const abortController = new AbortController();
-        const batchSize = 32
-
         const renderBatch = async (start: number, step: number) => {
+            let renderedPixel = 0
             for (let i = start; i < this.width; i += step) {
                 if (abortController.signal.aborted) break;
                 for (let j = start; j < this.height; j += step) {
@@ -114,10 +113,11 @@ export class Camera {
                         color = color.add(c);
                     }
                     drawPixel(ctx, i, j, color.div(this.options.samplesPerPixel));
-                }
 
-                if (i % batchSize === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0));
+                    if(++renderedPixel > 2048) {
+                        renderedPixel = 0
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
                 }
             }
         };
@@ -130,6 +130,7 @@ export class Camera {
                 await renderBatch(0, step);
                 step = Math.floor(step / 2); // 每次将步长减半
             }
+            abortController.abort('done')
 
             const endTime = Date.now()
             console.log(`render complete, ${endTime - startTime}ms`)
@@ -142,6 +143,11 @@ export class Camera {
         };
 
         progressiveRender().then(() => {
+            // 右下角添加渲染信息
+            ctx.font = "14px Arial";
+            ctx.fillStyle = "white";
+            ctx.textRendering = "optimizeLegibility";
+            ctx.fillText(`${this.width}x${this.height} ${this.options.samplesPerPixel} spp ${this.options.maxDepth} maxDepth`, 100, 100);
         });
 
         return abortController;
@@ -150,22 +156,23 @@ export class Camera {
     private rayTrace(ray: Ray, world: Hittable, depth: number): Color {
         if (depth > this.options.maxDepth) return new Vec3(0, 0, 0)
 
-        const hitRecord = world.hit(ray, new Interval(0.001, Infinity))
+        const hitRecord = world.hit(ray, new Interval(0.0001, Infinity))
         if (hitRecord) {
             const scatterResult = hitRecord.material.scatter(ray, hitRecord)
-            if (scatterResult) {
-                const attenuation = scatterResult.attenuation
-                const scattered = scatterResult.scattered
-                if (scattered) {
-                    const light = this.rayTrace(scattered, world, depth + 1)
-                    return attenuation.mul(light)
-                } else {
-                    return new Vec3(0, 0, 0)
-                }
+            const emittedResult = hitRecord.material.emitted?.(hitRecord.u, hitRecord.v, hitRecord.p) || Vec3.ZERO
+
+            const attenuation = scatterResult.attenuation
+            const scattered = scatterResult.scattered
+            if (scattered) {
+                const light = this.rayTrace(scattered, world, depth + 1)
+                return attenuation.mul(light).add(emittedResult)
+            } else {
+                return emittedResult
             }
         }
 
         // fake sky
+        return Vec3.ZERO
         const a = 0.5 * (ray.getDirection().y + 1.0)
         return new Vec3(1.0, 1.0, 1.0).mul(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).mul(a));
     }

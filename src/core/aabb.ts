@@ -10,8 +10,29 @@ export class AABB {
         this.min = min;
         this.max = max;
 
-        if (min.x > max.x || min.y > max.y || min.z > max.z) {
-            throw new Error("Invalid AABB");
+        if(this.min.x > this.max.x) [this.min.x, this.max.x] = [this.max.x, this.min.x]
+        if(this.min.y > this.max.y) [this.min.y, this.max.y] = [this.max.y, this.min.y]
+        if(this.min.z > this.max.z) [this.min.z, this.max.z] = [this.max.z, this.min.z]
+
+        this.padToMinimal()
+
+        if(this.min.x > this.max.x) throw new Error("Invalid AABB")
+        if(this.min.y > this.max.y) throw new Error("Invalid AABB")
+        if(this.min.z > this.max.z) throw new Error("Invalid AABB")
+    }
+
+    padToMinimal() {
+        if(this.max.x - this.min.x < 0.0001) {
+            this.min.x -= 0.0001
+            this.max.x += 0.0001
+        }
+        if(this.max.y - this.min.y < 0.0001) {
+            this.min.y -= 0.0001
+            this.max.y += 0.0001
+        }
+        if(this.max.z - this.min.z < 0.0001) {
+            this.min.z -= 0.0001
+            this.max.z += 0.0001
         }
     }
 

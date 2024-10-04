@@ -1,6 +1,6 @@
-import {HitRecord, type Hittable} from "@/core/object";
+import {type Hittable} from "@/core/object";
 import {AABB} from "@/core/aabb";
-import type {Ray} from "@/core/ray";
+import {HitRecord, type Ray} from "@/core/ray";
 import type {Interval} from "@/core/interval";
 
 export class BVHNode implements Hittable {

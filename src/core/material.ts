@@ -1,10 +1,13 @@
-import {Ray} from "@/core/ray";
-import type {HitRecord} from "@/core/object";
+import {HitRecord, Ray} from "@/core/ray";
 import {Vec3} from "@/core/vec";
 import {randomUnitVector, reflect, refract} from "@/core/vec";
+import {SolidColor, type Texture} from "@/core/texture";
+import type {Color} from "@/core/color";
 
 export interface Material {
     scatter(ray: Ray, hitRecord: HitRecord): ScatterResult
+
+    emitted?(u: number, v: number, p: Vec3): Color;
 }
 
 export interface ScatterResult {
@@ -13,10 +16,10 @@ export interface ScatterResult {
 }
 
 export class Lambertian implements Material {
-    private readonly albedo: Vec3;
+    private readonly texture: Texture;
 
-    constructor(albedo: Vec3) {
-        this.albedo = albedo;
+    constructor(src: Texture | Color) {
+        this.texture = src instanceof Vec3 ? new SolidColor(src) : src;
     }
 
     scatter(ray: Ray, hitRecord: HitRecord): ScatterResult {
@@ -25,9 +28,28 @@ export class Lambertian implements Material {
             .ensureNotZero(hitRecord.normal)
 
         return {
-            attenuation: this.albedo,
+            attenuation: this.texture.value(hitRecord.u, hitRecord.v, hitRecord.p),
             scattered: new Ray(hitRecord.p, scattered),
         };
+    }
+}
+
+export class DiffuseLight implements Material {
+    private readonly emit: Color;
+
+    constructor(src: Color) {
+        this.emit = src;
+    }
+
+    scatter(ray: Ray, hitRecord: HitRecord): ScatterResult {
+        return {
+            attenuation: this.emit,
+            scattered: null,
+        }
+    }
+
+    emitted(u: number, v: number, p: Vec3): Color {
+        return this.emit;
     }
 }
 

@@ -1,4 +1,4 @@
-import {Ray} from "@/core/ray";
+import {HitRecord, Ray} from "@/core/ray";
 import {Vec3} from "@/core/vec";
 import {Interval} from "@/core/interval";
 import {type Material} from "@/core/material";
@@ -8,33 +8,6 @@ export interface Hittable {
     boundingBox: AABB;
 
     hit(ray: Ray, interval: Interval): HitRecord | null;
-}
-
-export class HitRecord {
-    t: number;
-    p: Vec3;
-    normal: Vec3;
-    frontFace: boolean;
-    material: Material;
-
-    constructor(t: number, p: Vec3, material: Material) {
-        this.t = t;
-        this.p = p;
-        this.normal = new Vec3(1, 0, 0);
-        this.frontFace = false
-        this.material = material;
-    }
-
-    setNormal(ray: Vec3, outsideNormal: Vec3) {
-        if (ray.dot(outsideNormal) > 0) {
-            // 点积大于0，说明法线和外侧法线方向相同，则法线为相反方向
-            this.normal = outsideNormal.mul(-1)
-            this.frontFace = false
-        } else {
-            this.normal = outsideNormal;
-            this.frontFace = true
-        }
-    }
 }
 
 export class HitList implements Hittable {
@@ -103,8 +76,93 @@ export class Sphere implements Hittable {
         }
 
         const N = ray.at(root).sub(this.center).normalize();
-        const record = new HitRecord(root, ray.at(root), this.material);
+
+        const [u, v] = this.getUV(N);
+        const record = new HitRecord(root, ray.at(root), this.material, u, v);
         record.setNormal(ray.getDirection(), N);
+        return record;
+    }
+
+    getUV(p: Vec3) {
+        const theta = Math.acos(-p.y);
+        const phi = Math.atan2(-p.z, p.x) + Math.PI;
+
+        return [
+            1 - phi / (2 * Math.PI),
+            theta / Math.PI
+        ]
+    }
+}
+
+export class Quad implements Hittable {
+    boundingBox: AABB;
+    p0: Vec3;
+    u: Vec3;
+    v: Vec3;
+    normal: Vec3;
+    D: number;
+    material: Material;
+
+    constructor(p0: Vec3, u: Vec3, v: Vec3, material: Material) {
+        this.p0 = p0;
+        this.u = u;
+        this.v = v;
+        this.material = material;
+        this.normal = u.cross(v).normalize();
+        this.D = this.normal.dot(p0)
+
+        this.boundingBox = AABB.merge(
+            new AABB(p0, p0.add(u).add(v)),// 对角线1
+            new AABB(p0.add(u), p0.add(v)) // 对角线2
+        )
+    }
+
+    hit(ray: Ray, interval: Interval): HitRecord | null {
+        const denominator = this.normal.dot(ray.getDirection());
+
+        // If the denominator is close to zero, the ray is parallel to the quad
+        if (Math.abs(denominator) < 1e-6) {
+            return null;
+        }
+
+        // Calculate the intersection point along the ray
+        const t = (this.D - this.normal.dot(ray.getOrigin())) / denominator;
+
+        // Check if the intersection point is within the valid range
+        if (!interval.surrounds(t)) {
+            return null;
+        }
+
+        // Calculate the intersection point on the plane
+        const P = ray.at(t);
+
+        // Calculate vectors from the point p0 to the intersection point P
+        const AP = P.sub(this.p0);
+
+        // Calculate dot products to check if the point is inside the quad
+        const uu = this.u.dot(this.u);
+        const uv = this.u.dot(this.v);
+        const vv = this.v.dot(this.v);
+        const wu = AP.dot(this.u);
+        const wv = AP.dot(this.v);
+
+        // Calculate barycentric coordinates
+        const denom = uv * uv - uu * vv;
+        const s = (uv * wv - vv * wu) / denom;
+        const tParam = (uv * wu - uu * wv) / denom;
+
+        // Check if the intersection point is inside the quad
+        if (s < 0 || s > 1 || tParam < 0 || tParam > 1) {
+            return null;
+        }
+
+        // Calculate UV coordinates for texture mapping
+        const [u, v] = [s, tParam];
+
+        // Create a hit record
+        const record = new HitRecord(t, P, this.material, u, v);
+        record.setNormal(ray.getDirection(), this.normal);
+
         return record;
     }
 }

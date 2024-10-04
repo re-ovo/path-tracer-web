@@ -24,7 +24,7 @@
       <p class="control-area">
         <label>BVH加速</label>
         <input type="checkbox" v-model="useBVH"/>
-        {{useBVH}}
+        {{ useBVH }}
       </p>
       <p class="control-area">
         <label for="samplesPerPixel">Samples per pixel:</label>
@@ -46,18 +46,19 @@
 import {computed, onUnmounted, type Ref, ref, useTemplateRef} from "vue";
 import {Vec3} from "@/core/vec";
 import {useEventListener, useFps, useResizeObserver} from "@vueuse/core";
-import {HitList, type Hittable, Sphere} from "@/core/object";
+import {HitList, type Hittable, Quad, Sphere} from "@/core/object";
 import {Camera} from "@/core/camera";
-import {CookTorrance, Dielectric, Lambertian, Metal} from "@/core/material";
+import {CookTorrance, Dielectric, DiffuseLight, Lambertian, Metal} from "@/core/material";
 import {BVHNode} from "@/core/bvh";
+import {ImageTexture, SolidColor} from "@/core/texture";
 
 const fps = useFps()
 
 const canvasRef = useTemplateRef<HTMLCanvasElement | null>('canvasRef')
 let camera: Camera | null = null
 
-let cameraPosition = new Vec3(0, 1, -2)
-const cameraLookAt = new Vec3(0, 2, 2)
+let cameraPosition = new Vec3(0.5, 0.55, -0.6)
+const cameraLookAt = new Vec3(0.5, 0.5, 0.5)
 
 const samplesPerPixel = ref<number>(6)
 const maxDepth = ref<number>(6)
@@ -66,16 +67,71 @@ const defocusAngle = ref<number>(0.0)
 
 let currentRendering: Ref<AbortController | null> = ref(null)
 
+const wallMaterial = new Lambertian(new Vec3(0.8, 0.8, 0.8))
+
 const hittables: Hittable[] = [
+  // ground
+  new Quad(
+      new Vec3(0, 0, 0),
+      new Vec3(0, 0, 1),
+      new Vec3(1, 0, 0),
+      wallMaterial
+  ),
+  // ceil
+  new Quad(
+      new Vec3(0, 1, 0),
+      new Vec3(1, 0, 0),
+      new Vec3(0, 0, 1),
+      wallMaterial
+  ),
+  // ceil light
+  new Quad(
+      new Vec3(0.3, 0.995, 0.3),
+      new Vec3(0.4, 0, 0),
+      new Vec3(0, 0, 0.4),
+      new DiffuseLight(new Vec3(15, 15, 15))
+  ),
+  // walls
+  new Quad(
+      new Vec3(0, 0, 0),
+      new Vec3(0, 1, 0),
+      new Vec3(0, 0, 1),
+      new Lambertian(new Vec3(0.8, 0, 0))
+  ),
+  new Quad(
+      new Vec3(1, 0, 0),
+      new Vec3(0, 1, 0),
+      new Vec3(0, 0, 1),
+      new Lambertian(new Vec3(0, 0.8, 0))
+  ),
+  new Quad(
+      new Vec3(0, 0, 1),
+      new Vec3(0, 1, 0),
+      new Vec3(1, 0, 0),
+      wallMaterial
+  ),
+  // objects
   new Sphere(
-      new Vec3(0, -100.5, 2),
-      100,
-      new Lambertian(new Vec3(0.8, 0.8, 0.8)),
+      new Vec3(0.7, 0.15, 0.3),
+      0.15,
+      new Lambertian(
+          new ImageTexture('/2k_earth_daymap.jpg')
+      )
+  ),
+  new Sphere(
+      new Vec3(0.5, 0.5, 0.5),
+      0.2,
+      new Metal(new Vec3(0.5, 0.5, 0.5), 0.1)
+  ),
+    new Sphere(
+      new Vec3(0.23, 0.2, 0.3),
+      0.2,
+      new Dielectric(1.5)
   ),
 ]
 
 // 随机创建球体
-const amount = 50
+const amount = 0
 for (let i = 0; i < amount; i++) {
   const center = new Vec3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1)
   const radius = Math.random() * 0.2 + 0.1
@@ -116,6 +172,9 @@ const render = () => {
     )
     currentRendering.value?.abort()
     currentRendering.value = camera.render(ctx, world.value)
+    currentRendering.value.signal.onabort = () => {
+      currentRendering.value = null
+    }
   }
 }
 const cancel = () => {

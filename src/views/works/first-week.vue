@@ -1,24 +1,17 @@
 <template>
   <canvas ref="canvasRef" class="w-full h-full bg-black"/>
-  <div class="absolute top-8rem left-0 m-8 backdrop-blur-lg text-white bg-white/20 p-4 rounded-sm flex flex-col gap-2">
+  <div class="absolute top-8rem left-0 m-8 backdrop-blur-lg bg-white/20 p-4 rounded-sm flex flex-col gap-2">
     <div class="color-green-5 text-sm">
       FPS: {{ fps }}
     </div>
 
-    <button
-        @click="render"
-        class="bg-blue-600 border-none text-white rounded-md cursor-pointer hover:bg-blue-700 active:bg-blue-800 px-2 py-1"
-    >
+    <NButton type="primary" @click="render">
       <span class="text-md font-medium">Render</span>
-    </button>
+    </NButton>
 
-    <button
-        @click="cancel"
-        class="bg-red-600 border-none text-white rounded-md cursor-pointer hover:bg-red-700 active:bg-red-800 px-2 py-1"
-        v-if="isRendering"
-    >
+    <NButton type="error" @click="cancel" v-if="isRendering">
       <span class="text-md font-medium">Cancel</span>
-    </button>
+    </NButton>
 
     <div class="flex flex-col gap-2 max-w-[12rem] color-black">
       <p class="control-area">
@@ -28,29 +21,30 @@
       </p>
       <p class="control-area">
         <label for="samplesPerPixel">Samples per pixel:</label>
-        <input type="number" v-model="cameraOptions.samplesPerPixel"/>
+        <NInputNumber v-model:value="cameraOptions.samplesPerPixel" />
         <label for="maxDepth">Max depth:</label>
-        <input type="number" v-model="cameraOptions.maxDepth"/>
+        <NInputNumber v-model:value="cameraOptions.maxDepth"/>
       </p>
       <p class="control-area">
         <label for="focusDist">Focus distance:</label>
-        <input type="number" v-model="cameraOptions.focusDist"/>
+        <NInputNumber v-model:value="cameraOptions.focusDist"/>
         <label for="defocusAngle">Defocus angle:</label>
-        <input type="number" v-model="cameraOptions.defocusAngle"/>
+        <NInputNumber v-model:value="cameraOptions.defocusAngle"/>
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, onUnmounted, type Ref, ref, toRaw, useTemplateRef} from "vue";
-import {Vec3} from "@/core/vec";
-import {useEventListener, useFps, useResizeObserver} from "@vueuse/core";
-import {HitList, type Hittable, Quad, Sphere} from "@/core/object";
-import {Camera} from "@/core/camera";
-import {CookTorrance, Dielectric, DiffuseLight, Lambertian, Metal} from "@/core/material";
-import {BVHNode} from "@/core/bvh";
-import {ImageTexture, SolidColor} from "@/core/texture";
+import { BVHNode } from "@/core/bvh";
+import { Camera } from "@/core/camera";
+import { Dielectric, DiffuseLight, Lambertian, Metal } from "@/core/material";
+import { HitList, type Hittable, Quad, Sphere } from "@/core/object";
+import { ImageTexture } from "@/core/texture";
+import { Vec3 } from "@/core/vec";
+import { useEventListener, useFps } from "@vueuse/core";
+import { NButton, NInputNumber } from "naive-ui";
+import { computed, isProxy, onUnmounted, type Ref, ref, toRaw, toValue, unref, useTemplateRef } from "vue";
 
 const fps = useFps()
 
@@ -184,6 +178,7 @@ const render = () => {
 const cancel = () => {
   currentRendering.value?.abort()
   currentRendering.value = null
+  camera = null
 }
 onUnmounted(cancel)
 const isRendering = computed(() => {

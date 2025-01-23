@@ -1,200 +1,186 @@
-import {randomFloat} from "@/core/interval";
+import { randomFloat } from '@/core/interval';
 
 export class Vec3 {
-    private readonly data: number[]
+  private readonly data: number[];
 
-    constructor(x: number, y: number, z: number) {
-        this.data = [x, y, z]
+  constructor(x: number, y: number, z: number) {
+    this.data = [x, y, z];
+  }
+
+  axis(i: number) {
+    return this.data[i];
+  }
+
+  get x() {
+    return this.data[0];
+  }
+
+  get y() {
+    return this.data[1];
+  }
+
+  get z() {
+    return this.data[2];
+  }
+
+  set x(x: number) {
+    this.data[0] = x;
+  }
+
+  set y(y: number) {
+    this.data[1] = y;
+  }
+
+  set z(z: number) {
+    this.data[2] = z;
+  }
+
+  clone(): Vec3 {
+    return new Vec3(this.x, this.y, this.z);
+  }
+
+  add(v: Vec3): Vec3 {
+    return new Vec3(this.x + v.x, this.y + v.y, this.z + v.z);
+  }
+
+  sub(v: Vec3): Vec3 {
+    return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z);
+  }
+
+  mul(v: Vec3 | number): Vec3 {
+    if (typeof v === 'number') {
+      return new Vec3(this.x * v, this.y * v, this.z * v);
+    } else {
+      return new Vec3(this.x * v.x, this.y * v.y, this.z * v.z);
     }
+  }
 
-    axis(i: number) {
-        return this.data[i]
+  isNaN(): boolean {
+    return isNaN(this.x) || isNaN(this.y) || isNaN(this.z);
+  }
+
+  div(v: Vec3 | number): Vec3 {
+    if (typeof v === 'number') {
+      return new Vec3(this.x / v, this.y / v, this.z / v);
+    } else {
+      return new Vec3(this.x / v.x, this.y / v.y, this.z / v.z);
     }
+  }
 
-    get x() {
-        return this.data[0]
-    }
+  dot(v: Vec3): number {
+    return this.x * v.x + this.y * v.y + this.z * v.z;
+  }
 
-    get y() {
-        return this.data[1]
-    }
+  cross(v: Vec3): Vec3 {
+    return new Vec3(
+      this.y * v.z - this.z * v.y,
+      this.z * v.x - this.x * v.z,
+      this.x * v.y - this.y * v.x,
+    );
+  }
 
-    get z() {
-        return this.data[2]
-    }
+  length(): number {
+    return Math.sqrt(this.dot(this));
+  }
 
-    set x(x: number) {
-        this.data[0] = x
-    }
+  lengthSquared(): number {
+    return this.dot(this);
+  }
 
-    set y(y: number) {
-        this.data[1] = y
-    }
+  normalize(): Vec3 {
+    return this.div(this.length());
+  }
 
-    set z(z: number) {
-        this.data[2] = z
-    }
+  negative(): Vec3 {
+    return this.mul(-1);
+  }
 
-    clone(): Vec3 {
-        return new Vec3(this.x, this.y, this.z)
-    }
+  abs(): Vec3 {
+    return new Vec3(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
+  }
 
-    add(v: Vec3): Vec3 {
-        return new Vec3(this.x + v.x, this.y + v.y, this.z + v.z)
-    }
+  addToThis(v: Vec3): Vec3 {
+    this.x += v.x;
+    this.y += v.y;
+    this.z += v.z;
+    return this;
+  }
 
-    sub(v: Vec3): Vec3 {
-        return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z)
-    }
+  mulToThis(v: Vec3): Vec3 {
+    this.x *= v.x;
+    this.y *= v.y;
+    this.z *= v.z;
+    return this;
+  }
 
-    mul(v: Vec3 | number): Vec3 {
-        if (typeof v === 'number') {
-            return new Vec3(
-                this.x * v,
-                this.y * v,
-                this.z * v
-            )
-        } else {
-            return new Vec3(
-                this.x * v.x,
-                this.y * v.y,
-                this.z * v.z
-            )
-        }
-    }
+  ensureNotZero(fallback: Vec3) {
+    return this.lengthSquared() < 1e-8 ? fallback : this;
+  }
 
-    isNaN(): boolean {
-        return isNaN(this.x) || isNaN(this.y) || isNaN(this.z)
-    }
+  toString(): string {
+    return `[${this.x}, ${this.y}, ${this.z}]`;
+  }
 
-    div(v: Vec3 | number): Vec3 {
-        if (typeof v === 'number') {
-            return new Vec3(
-                this.x / v,
-                this.y / v,
-                this.z / v
-            )
-        } else {
-            return new Vec3(
-                this.x / v.x,
-                this.y / v.y,
-                this.z / v.z
-            )
-        }
-    }
+  static lerp(a: Vec3, b: Vec3, t: number): Vec3 {
+    return a.add(b.sub(a).mul(t));
+  }
 
-    dot(v: Vec3): number {
-        return this.x * v.x + this.y * v.y + this.z * v.z
-    }
+  static hexColor(hex: string): Vec3 {
+    return new Vec3(
+      parseInt(hex.substring(1, 3), 16) / 255,
+      parseInt(hex.substring(3, 5), 16) / 255,
+      parseInt(hex.substring(5, 7), 16) / 255,
+    );
+  }
 
-    cross(v: Vec3): Vec3 {
-        return new Vec3(
-            this.y * v.z - this.z * v.y,
-            this.z * v.x - this.x * v.z,
-            this.x * v.y - this.y * v.x
-        )
-    }
-
-    length(): number {
-        return Math.sqrt(this.dot(this))
-    }
-
-    lengthSquared(): number {
-        return this.dot(this)
-    }
-
-    normalize(): Vec3 {
-        return this.div(this.length())
-    }
-
-    negative(): Vec3 {
-        return this.mul(-1)
-    }
-
-    abs(): Vec3 {
-        return new Vec3(
-            Math.abs(this.x),
-            Math.abs(this.y),
-            Math.abs(this.z)
-        )
-    }
-
-    addToThis(v: Vec3): Vec3 {
-        this.x += v.x
-        this.y += v.y
-        this.z += v.z
-        return this
-    }
-
-    mulToThis(v: Vec3): Vec3 {
-        this.x *= v.x
-        this.y *= v.y
-        this.z *= v.z
-        return this
-    }
-
-    ensureNotZero(fallback: Vec3) {
-        return this.lengthSquared() < 1e-8 ? fallback : this
-    }
-
-    toString(): string {
-        return `[${this.x}, ${this.y}, ${this.z}]`
-    }
-
-    static lerp(a: Vec3, b: Vec3, t: number): Vec3 {
-        return a.add(b.sub(a).mul(t))
-    }
-
-    static hexColor(hex: string): Vec3 {
-        return new Vec3(
-            parseInt(hex.substring(1, 3), 16) / 255,
-            parseInt(hex.substring(3, 5), 16) / 255,
-            parseInt(hex.substring(5, 7), 16) / 255
-        )
-    }
-
-    static ZERO = new Vec3(0, 0, 0)
-    static ONE = new Vec3(1, 1, 1)
-    static RED = new Vec3(1, 0, 0)
-    static GREEN = new Vec3(0, 1, 0)
-    static BLUE = new Vec3(0, 0, 1)
+  static ZERO = new Vec3(0, 0, 0);
+  static ONE = new Vec3(1, 1, 1);
+  static RED = new Vec3(1, 0, 0);
+  static GREEN = new Vec3(0, 1, 0);
+  static BLUE = new Vec3(0, 0, 1);
 }
 
 export function randomOnHemisphere(normal: Vec3): Vec3 {
-    let onUnitSphere = randomUnitVector()
-    if (onUnitSphere.dot(normal) > 0.0) {
-        return onUnitSphere
-    } else {
-        return onUnitSphere.mul(-1)
-    }
+  let onUnitSphere = randomUnitVector();
+  if (onUnitSphere.dot(normal) > 0.0) {
+    return onUnitSphere;
+  } else {
+    return onUnitSphere.mul(-1);
+  }
 }
 
 export function randomUnitVector(): Vec3 {
-    while (true) {
-        let p = new Vec3(randomFloat(-1, 1), randomFloat(-1, 1), randomFloat(-1, 1))
-        let l = p.lengthSquared()
-        if (l <= 1) {
-            return p.div(Math.sqrt(l))
-        }
+  while (true) {
+    let p = new Vec3(
+      randomFloat(-1, 1),
+      randomFloat(-1, 1),
+      randomFloat(-1, 1),
+    );
+    let l = p.lengthSquared();
+    if (l <= 1) {
+      return p.div(Math.sqrt(l));
     }
+  }
 }
 
 export function randomInUnitDisk(): Vec3 {
-    while (true) {
-        let p = new Vec3(randomFloat(-1, 1), randomFloat(-1, 1), 0)
-        if (p.lengthSquared() < 1) {
-            return p
-        }
+  while (true) {
+    let p = new Vec3(randomFloat(-1, 1), randomFloat(-1, 1), 0);
+    if (p.lengthSquared() < 1) {
+      return p;
     }
+  }
 }
 
 export function reflect(v: Vec3, n: Vec3): Vec3 {
-    return v.sub(n.mul(2 * v.dot(n)))
+  return v.sub(n.mul(2 * v.dot(n)));
 }
 
 export function refract(uv: Vec3, n: Vec3, etaiOverEtat: number): Vec3 {
-    const cosTheta = Math.min(uv.mul(-1).dot(n), 1.0);
-    const rOutPerp = uv.add(n.mul(cosTheta)).mul(etaiOverEtat);
-    const rOutParallel = n.mul(-Math.sqrt(Math.abs(1.0 - rOutPerp.lengthSquared())));
-    return rOutPerp.add(rOutParallel);
+  const cosTheta = Math.min(uv.mul(-1).dot(n), 1.0);
+  const rOutPerp = uv.add(n.mul(cosTheta)).mul(etaiOverEtat);
+  const rOutParallel = n.mul(
+    -Math.sqrt(Math.abs(1.0 - rOutPerp.lengthSquared())),
+  );
+  return rOutPerp.add(rOutParallel);
 }

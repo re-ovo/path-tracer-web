@@ -16,7 +16,7 @@
 
 ```bash
 # npm
-npm install 
+npm install
 
 # pnpm
 pnpm install
